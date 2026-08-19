@@ -483,6 +483,18 @@ export type Database = {
         }
         Returns: number
       }
+      create_clinic_with_owner: {
+        Args: {
+          p_address: string | null
+          p_email: string | null
+          p_lga: string | null
+          p_name: string
+          p_phone: string | null
+          p_slug: string
+          p_state: string | null
+        }
+        Returns: string
+      }
       generate_short_token: { Args: Record<PropertyKey, never>; Returns: string }
       redact_expired_patient_contact: { Args: Record<PropertyKey, never>; Returns: undefined }
     }
