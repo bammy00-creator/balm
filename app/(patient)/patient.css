@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Deliberately no next/font / Google Fonts here: SPEC 6 caps the whole patient
+   form page at 150KB on 3G, so this route uses the system font stack instead
+   of downloading anything. */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
