@@ -6,7 +6,7 @@ milestone by milestone per section 12 of the spec, stopping for review after eac
 ## Status
 
 - [x] **Milestone 1** — database schema, row level security, seed data
-- [ ] Milestone 2 — patient feedback form end to end
+- [x] **Milestone 2** — patient feedback form end to end
 - [ ] Milestone 3 — auth, clinic onboarding, branches/providers, link generation
 - [ ] Milestone 4 — dashboard, response feed, alerting + email
 - [ ] Milestone 5 — publication queue, public clinic profile, admin moderation
@@ -40,6 +40,21 @@ Project **Balm** (`cwnyayrsxujucrxqojuy`) lives in the Atofarati Supabase org, r
   role client, never the browser client — see `lib/supabase/admin.ts`.
 - A daily `pg_cron` job (`redact-expired-patient-contact`) nulls out `patient_name` /
   `patient_phone` on responses older than 180 days, per the retention rule in SPEC section 11.
+
+### Patient form (`/r/[token]`)
+
+- Its own root layout (`app/(patient)/layout.tsx`) skips the site's Geist webfonts entirely —
+  system font stack only — to protect the 150KB page-weight budget in SPEC section 6.
+- Measured **~139-142KB gzipped** (JS+CSS+HTML) in a production build against the 150KB ceiling.
+  That's close to the floor for React + Next.js App Router with zero extra libraries — there's
+  not much headroom left, so re-check this before adding any client-side dependency, especially
+  in Milestone 6 polish.
+- `POST /api/responses` de-dupes repeat submissions from the same hashed IP + token within 30
+  seconds (SPEC section 11 abuse control), which also makes the client's automatic
+  retry-once-on-failure safe against double inserts.
+- `lib/phone.ts` normalizes Nigerian numbers (`0803...` / `+234803...`) to a plain `234...`
+  string, shared between the client and the API route — also the format Milestone 4's WhatsApp
+  click-to-chat links will need.
 
 ## Existing prior work
 
