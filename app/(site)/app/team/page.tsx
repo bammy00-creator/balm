@@ -35,49 +35,49 @@ export default async function TeamPage() {
   return (
     <div className="flex flex-col gap-8">
       <section>
-        <h1 className="mb-4 text-lg font-semibold text-zinc-900">Branches</h1>
+        <h1 className="mb-4 text-lg font-semibold text-cocoa">Branches</h1>
         <ul className="mb-4 flex flex-col gap-2">
           {(branches ?? []).map((b) => (
             <li
               key={b.id}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3"
+              className="flex items-center justify-between rounded-control border border-rule px-4 py-3"
             >
               <div>
-                <p className="text-sm font-medium text-zinc-900">
+                <p className="text-sm font-semibold text-cocoa">
                   {b.name}
                   {b.is_default && (
-                    <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-500">
+                    <span className="ml-2 rounded bg-sand px-1.5 py-0.5 text-xs text-muted">
                       Default
                     </span>
                   )}
                 </p>
-                {b.address && <p className="text-xs text-zinc-500">{b.address}</p>}
+                {b.address && <p className="text-xs text-muted">{b.address}</p>}
               </div>
             </li>
           ))}
           {(branches ?? []).length === 0 && (
-            <p className="text-sm text-zinc-500">No branches yet.</p>
+            <p className="text-sm text-muted">No branches yet.</p>
           )}
         </ul>
         {canManage && <AddBranchForm />}
       </section>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-zinc-900">Providers</h2>
+        <h2 className="mb-4 text-lg font-semibold text-cocoa">Providers</h2>
         <ul className="mb-4 flex flex-col gap-2">
           {(providers ?? []).map((p) => {
             const branch = (branches ?? []).find((b) => b.id === p.branch_id);
             return (
               <li
                 key={p.id}
-                className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3"
+                className="flex items-center justify-between rounded-control border border-rule px-4 py-3"
               >
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">
+                  <p className="text-sm font-semibold text-cocoa">
                     {p.full_name}
-                    {p.role && <span className="ml-1 text-zinc-500">({p.role})</span>}
+                    {p.role && <span className="ml-1 text-muted">({p.role})</span>}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted">
                     {branch?.name ?? "Unknown branch"} &middot;{" "}
                     {p.is_active ? "Active" : "Inactive"}
                   </p>
@@ -86,7 +86,7 @@ export default async function TeamPage() {
                   <form action={toggleProviderActive.bind(null, p.id, !p.is_active)}>
                     <button
                       type="submit"
-                      className="min-h-11 rounded-lg border border-zinc-300 px-3 py-2 text-xs text-zinc-700"
+                      className="min-h-11 rounded-control border border-rule px-3 py-2 text-xs text-cocoa"
                     >
                       {p.is_active ? "Deactivate" : "Activate"}
                     </button>
@@ -96,7 +96,7 @@ export default async function TeamPage() {
             );
           })}
           {(providers ?? []).length === 0 && (
-            <p className="text-sm text-zinc-500">No providers yet.</p>
+            <p className="text-sm text-muted">No providers yet.</p>
           )}
         </ul>
         {canManage && <AddProviderForm branches={branches ?? []} />}

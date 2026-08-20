@@ -16,30 +16,30 @@ export function AddBranchForm() {
   return (
     <form ref={formRef} action={formAction} className="flex flex-wrap items-end gap-2">
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Branch name</label>
+        <label className="mb-1 block text-xs text-muted">Branch name</label>
         <input
           type="text"
           name="name"
           required
-          className="min-h-11 rounded-lg border border-zinc-300 p-2 text-sm"
+          className="min-h-11 rounded-control border border-rule p-2 text-sm"
         />
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Address</label>
+        <label className="mb-1 block text-xs text-muted">Address</label>
         <input
           type="text"
           name="address"
-          className="min-h-11 rounded-lg border border-zinc-300 p-2 text-sm"
+          className="min-h-11 rounded-control border border-rule p-2 text-sm"
         />
       </div>
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+        className="min-h-11 rounded-control bg-marigold px-4 py-2 text-sm font-semibold text-cocoa disabled:opacity-60"
       >
         {pending ? "Adding..." : "Add branch"}
       </button>
-      {state.error && <p className="w-full text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="w-full text-sm text-berry">{state.error}</p>}
     </form>
   );
 }

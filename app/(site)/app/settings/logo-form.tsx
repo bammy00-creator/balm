@@ -15,10 +15,10 @@ export function LogoForm({ logoUrl }: { logoUrl: string | null }) {
         <img
           src={logoUrl}
           alt="Clinic logo"
-          className="h-16 w-16 rounded-lg border border-zinc-200 object-cover"
+          className="h-16 w-16 rounded-control border border-rule object-cover"
         />
       ) : (
-        <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-zinc-300 text-xs text-zinc-400">
+        <div className="flex h-16 w-16 items-center justify-center rounded-control border border-dashed border-rule text-xs text-muted">
           None
         </div>
       )}
@@ -27,13 +27,13 @@ export function LogoForm({ logoUrl }: { logoUrl: string | null }) {
         <button
           type="submit"
           disabled={pending}
-          className="ml-3 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-medium text-white disabled:opacity-60"
+          className="ml-3 rounded-control bg-marigold px-3 py-2 text-xs font-semibold text-cocoa disabled:opacity-60"
         >
           {pending ? "Uploading..." : "Upload"}
         </button>
-        {state.error && <p className="mt-1 text-sm text-red-600">{state.error}</p>}
-        {state.success && <p className="mt-1 text-sm text-green-700">Saved.</p>}
-        <p className="mt-1 text-xs text-zinc-400">PNG, JPEG, or WebP, under 2MB.</p>
+        {state.error && <p className="mt-1 text-sm text-berry">{state.error}</p>}
+        {state.success && <p className="mt-1 text-sm text-leaf">Saved.</p>}
+        <p className="mt-1 text-xs text-muted">PNG, JPEG, or WebP, under 2MB.</p>
       </div>
     </form>
   );

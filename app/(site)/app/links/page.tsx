@@ -29,7 +29,7 @@ export default async function LinksPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-semibold text-zinc-900">Feedback links</h1>
+      <h1 className="mb-4 text-lg font-semibold text-cocoa">Feedback links</h1>
 
       {canManage && (
         <div className="mb-6">
@@ -42,21 +42,21 @@ export default async function LinksPage() {
           const branch = (branches ?? []).find((b) => b.id === l.branch_id);
           const url = `/r/${l.token}`;
           return (
-            <li key={l.id} className="rounded-lg border border-zinc-200 px-4 py-3">
+            <li key={l.id} className="rounded-control border border-rule px-4 py-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">
+                  <p className="text-sm font-semibold text-cocoa">
                     {l.label || branch?.name || "Untitled link"}
-                    <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-xs uppercase text-zinc-500">
+                    <span className="ml-2 rounded bg-sand px-1.5 py-0.5 text-xs uppercase text-muted">
                       {l.channel}
                     </span>
                     {!l.is_active && (
-                      <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-600">
+                      <span className="ml-2 rounded bg-sand px-1.5 py-0.5 text-xs text-berry">
                         Inactive
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted">
                     {branch?.name} &middot;{" "}
                     <a href={url} target="_blank" rel="noreferrer" className="underline">
                       {url}
@@ -68,19 +68,19 @@ export default async function LinksPage() {
                     <>
                       <a
                         href={`/api/links/${l.id}/qr.png`}
-                        className="min-h-11 content-center rounded-lg border border-zinc-300 px-3 py-2 text-xs text-zinc-700"
+                        className="min-h-11 content-center rounded-control border border-rule px-3 py-2 text-xs text-cocoa"
                       >
                         PNG
                       </a>
                       <a
                         href={`/api/links/${l.id}/qr.pdf`}
-                        className="min-h-11 content-center rounded-lg border border-zinc-300 px-3 py-2 text-xs text-zinc-700"
+                        className="min-h-11 content-center rounded-control border border-rule px-3 py-2 text-xs text-cocoa"
                       >
                         PDF
                       </a>
                       <a
                         href={`/api/links/${l.id}/poster.pdf`}
-                        className="min-h-11 content-center rounded-lg border border-zinc-300 px-3 py-2 text-xs text-zinc-700"
+                        className="min-h-11 content-center rounded-control border border-rule px-3 py-2 text-xs text-cocoa"
                       >
                         Poster
                       </a>
@@ -90,7 +90,7 @@ export default async function LinksPage() {
                     <form action={toggleLinkActive.bind(null, l.id, !l.is_active)}>
                       <button
                         type="submit"
-                        className="min-h-11 rounded-lg border border-zinc-300 px-3 py-2 text-xs text-zinc-700"
+                        className="min-h-11 rounded-control border border-rule px-3 py-2 text-xs text-cocoa"
                       >
                         {l.is_active ? "Deactivate" : "Activate"}
                       </button>
@@ -102,7 +102,7 @@ export default async function LinksPage() {
           );
         })}
         {(links ?? []).length === 0 && (
-          <p className="text-sm text-zinc-500">No links yet.</p>
+          <p className="text-sm text-muted">No links yet.</p>
         )}
       </ul>
     </div>

@@ -41,7 +41,7 @@ const RETURN_OPTIONS: { value: ReturnIntent; label: string }[] = [
   { value: "no", label: "No" },
 ];
 
-const TOTAL_QUESTIONS = 4;
+const TAP_ADVANCE_DELAY = 180;
 
 function OptionButton({
   label,
@@ -56,10 +56,8 @@ function OptionButton({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-11 w-full rounded-lg border px-4 py-3 text-left text-base ${
-        selected
-          ? "border-zinc-900 bg-zinc-900 text-white"
-          : "border-zinc-300 bg-white text-zinc-900 active:bg-zinc-100"
+      className={`min-h-16 w-full rounded-block px-4 py-3 text-left font-body text-lg font-medium transition-colors ${
+        selected ? "bg-marigold text-cocoa" : "bg-sand text-cocoa active:bg-rule"
       }`}
     >
       {label}
@@ -67,22 +65,27 @@ function OptionButton({
   );
 }
 
-function Progress({ step }: { step: number }) {
+function ProgressDots({ step }: { step: number }) {
   return (
-    <p className="mb-4 text-sm text-zinc-500">
-      Question {step} of {TOTAL_QUESTIONS}
-    </p>
+    <div className="mb-6 flex gap-2" aria-hidden>
+      {[1, 2, 3, 4].map((i) => (
+        <span
+          key={i}
+          className={`h-2 w-2 rounded-chip ${step > i ? "bg-marigold" : "bg-sand"}`}
+        />
+      ))}
+    </div>
   );
 }
 
-function BackLink({ onClick }: { onClick: () => void }) {
+function GoBack({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="mb-4 min-h-11 text-sm text-zinc-500 underline underline-offset-2"
+      className="mt-6 min-h-11 text-sm text-muted underline underline-offset-2"
     >
-      Back
+      Go back
     </button>
   );
 }
@@ -129,6 +132,11 @@ export function PatientForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnline]);
 
+  function selectAndAdvance<T>(setter: (v: T) => void, value: T, nextStep: number) {
+    setter(value);
+    window.setTimeout(() => setStep(nextStep), TAP_ADVANCE_DELAY);
+  }
+
   async function submit() {
     if (patientPhone.trim() && !normalizeNigerianPhone(patientPhone)) {
       setPhoneError("That doesn't look like a Nigerian phone number.");
@@ -138,7 +146,7 @@ export function PatientForm({
     if (!navigator.onLine) {
       autoRetryPending.current = true;
       setSubmitError(
-        "You're offline. Your answers are saved here - we'll send them automatically as soon as your connection is back."
+        "You're offline. Your answers are still here - we'll send them as soon as your connection is back."
       );
       return;
     }
@@ -171,7 +179,7 @@ export function PatientForm({
 
       if (!res.ok) {
         setSubmitError(
-          "That didn't go through. Your answers are still here - please try again."
+          "Your answer did not send. Check your connection and tap Send again. Your answers are still here."
         );
         setSubmitting(false);
         return;
@@ -180,39 +188,38 @@ export function PatientForm({
       const { notify } = (await res.json()) as { notify: boolean };
       router.push(`/r/${token}/done${notify ? "?notice=1" : ""}`);
     } catch {
-      // Covers the connection dropping mid-request too, not just being
-      // offline at the start - either way, retry automatically once we're
-      // back online rather than making them notice and tap Submit again.
       autoRetryPending.current = true;
       setSubmitError(
-        "That didn't go through. Check your connection - your answers are still here, and we'll retry automatically once you're back online."
+        "Your answer did not send. Check your connection - your answers are still here, and we'll retry once you're back online."
       );
       setSubmitting(false);
     }
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-sm px-5 py-8">
+    <main className="mx-auto min-h-screen max-w-[520px] px-6 pt-8 pb-8">
       {!isOnline && (
-        <div className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          You&apos;re offline. Your answers are safe here and will send once
+        <div className="mb-4 rounded-block bg-sand px-3 py-2 text-sm text-cocoa">
+          You&apos;re offline. Your answers are safe and will send once
           you&apos;re back online.
         </div>
       )}
       {step === 0 && (
         <div className="flex min-h-[80vh] flex-col justify-center gap-6">
           <div>
-            <h1 className="text-lg font-semibold text-zinc-900">{clinicName}</h1>
-            <p className="mt-3 text-base leading-6 text-zinc-700">
-              This clinic wants to know how your visit went. It takes about
-              thirty seconds. Do not tell us anything about your health
-              condition. Your answers are shared with the clinic.
+            <p className="text-sm text-muted">{clinicName}</p>
+            <h1 className="mt-2 font-display text-[30px] font-semibold leading-tight text-cocoa">
+              How was your visit today?
+            </h1>
+            <p className="mt-3 text-base leading-6 text-cocoa">
+              This takes about thirty seconds. Please do not tell us anything
+              about your health condition. Your answers go to the clinic.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setStep(1)}
-            className="min-h-11 w-full rounded-lg bg-zinc-900 px-4 py-3 text-base font-medium text-white"
+            className="min-h-16 w-full rounded-control bg-marigold px-4 py-3 font-body text-[17px] font-semibold text-cocoa"
           >
             Start
           </button>
@@ -221,20 +228,18 @@ export function PatientForm({
 
       {step === 1 && (
         <div>
-          <Progress step={1} />
-          <h2 className="mb-4 text-lg font-medium text-zinc-900">
+          <p className="text-sm text-muted">{clinicName}</p>
+          <ProgressDots step={1} />
+          <h2 className="mb-4 font-display text-[30px] font-semibold leading-tight text-cocoa">
             How long did you wait before someone attended to you?
           </h2>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {WAIT_OPTIONS.map((o) => (
               <OptionButton
                 key={o.value}
                 label={o.label}
                 selected={waitBand === o.value}
-                onClick={() => {
-                  setWaitBand(o.value);
-                  setStep(2);
-                }}
+                onClick={() => selectAndAdvance(setWaitBand, o.value, 2)}
               />
             ))}
           </div>
@@ -243,58 +248,54 @@ export function PatientForm({
 
       {step === 2 && (
         <div>
-          <Progress step={2} />
-          <BackLink onClick={() => setStep(1)} />
-          <h2 className="mb-4 text-lg font-medium text-zinc-900">
+          <p className="text-sm text-muted">{clinicName}</p>
+          <ProgressDots step={2} />
+          <h2 className="mb-4 font-display text-[30px] font-semibold leading-tight text-cocoa">
             Were you treated with respect and courtesy?
           </h2>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {RESPECT_OPTIONS.map((o) => (
               <OptionButton
                 key={o.value}
                 label={o.label}
                 selected={respectScore === o.value}
-                onClick={() => {
-                  setRespectScore(o.value);
-                  setStep(3);
-                }}
+                onClick={() => selectAndAdvance(setRespectScore, o.value, 3)}
               />
             ))}
           </div>
+          <GoBack onClick={() => setStep(1)} />
         </div>
       )}
 
       {step === 3 && (
         <div>
-          <Progress step={3} />
-          <BackLink onClick={() => setStep(2)} />
-          <h2 className="mb-4 text-lg font-medium text-zinc-900">
+          <p className="text-sm text-muted">{clinicName}</p>
+          <ProgressDots step={3} />
+          <h2 className="mb-4 font-display text-[30px] font-semibold leading-tight text-cocoa">
             Would you come back to this clinic?
           </h2>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {RETURN_OPTIONS.map((o) => (
               <OptionButton
                 key={o.value}
                 label={o.label}
                 selected={returnIntent === o.value}
-                onClick={() => {
-                  setReturnIntent(o.value);
-                  setStep(4);
-                }}
+                onClick={() => selectAndAdvance(setReturnIntent, o.value, 4)}
               />
             ))}
           </div>
+          <GoBack onClick={() => setStep(2)} />
         </div>
       )}
 
       {step === 4 && (
         <div>
-          <Progress step={4} />
-          <BackLink onClick={() => setStep(3)} />
-          <h2 className="mb-2 text-lg font-medium text-zinc-900">
+          <p className="text-sm text-muted">{clinicName}</p>
+          <ProgressDots step={4} />
+          <h2 className="mb-2 font-display text-[30px] font-semibold leading-tight text-cocoa">
             Anything you would like them to know?
           </h2>
-          <p className="mb-3 text-sm text-zinc-500">
+          <p className="mb-3 text-sm text-muted">
             Please do not include details about your health condition.
           </p>
           <textarea
@@ -302,68 +303,76 @@ export function PatientForm({
             maxLength={300}
             onChange={(e) => setComment(e.target.value)}
             rows={5}
-            className="w-full rounded-lg border border-zinc-300 p-3 text-base"
+            className="w-full rounded-control border border-rule bg-paper p-3 font-body text-base text-cocoa"
             placeholder="Optional"
           />
-          <p className="mt-1 text-right text-xs text-zinc-400">
-            {comment.length}/300
-          </p>
-          <button
-            type="button"
-            onClick={() => setStep(5)}
-            className="mt-4 min-h-11 w-full rounded-lg bg-zinc-900 px-4 py-3 text-base font-medium text-white"
-          >
-            {comment.trim() ? "Next" : "Skip"}
-          </button>
+          {comment.length > 240 && (
+            <p className="mt-1 text-right text-xs text-muted">{comment.length}/300</p>
+          )}
+          <div className="mt-4 flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setComment("");
+                setStep(5);
+              }}
+              className="min-h-16 flex-1 rounded-control border border-rule px-4 py-3 font-body text-[17px] font-semibold text-cocoa"
+            >
+              Skip
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep(5)}
+              className="min-h-16 flex-1 rounded-control bg-marigold px-4 py-3 font-body text-[17px] font-semibold text-cocoa"
+            >
+              Send
+            </button>
+          </div>
         </div>
       )}
 
       {step === 5 && (
         <div>
-          <BackLink onClick={() => setStep(4)} />
-          <h2 className="mb-4 text-lg font-medium text-zinc-900">
+          <p className="text-sm text-muted">{clinicName}</p>
+          <h2 className="mb-4 font-display text-[22px] font-semibold text-cocoa">
             A few optional questions
           </h2>
 
           {providers.length > 0 && (
             <div className="mb-5">
-              <label className="mb-1 block text-sm text-zinc-600">
-                Who attended to you?
-              </label>
+              <label className="mb-1 block text-sm text-muted">Who attended to you?</label>
               <select
                 value={providerId}
                 onChange={(e) => setProviderId(e.target.value)}
-                className="min-h-11 w-full rounded-lg border border-zinc-300 bg-white p-3 text-base"
+                className="min-h-16 w-full rounded-control border border-rule bg-paper p-3 font-body text-base text-cocoa"
               >
-                <option value="unspecified">I would rather not say</option>
                 {providers.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.full_name}
                     {p.role ? ` (${p.role})` : ""}
                   </option>
                 ))}
+                <option value="unspecified">I would rather not say</option>
               </select>
-              {branchName && (
-                <p className="mt-1 text-xs text-zinc-400">{branchName}</p>
-              )}
+              {branchName && <p className="mt-1 text-xs text-muted">{branchName}</p>}
             </div>
           )}
 
-          <div className="mb-5">
-            <label className="mb-1 block text-sm text-zinc-600">
-              Your name (optional)
-            </label>
+          <p className="mb-2 text-sm text-muted">
+            Only if you are happy for the clinic to call you.
+          </p>
+          <div className="mb-4">
+            <label className="mb-1 block text-sm text-muted">Your name (optional)</label>
             <input
               type="text"
               value={patientName}
               onChange={(e) => setPatientName(e.target.value)}
-              className="min-h-11 w-full rounded-lg border border-zinc-300 p-3 text-base"
-              placeholder="If you're happy for the clinic to call you back"
+              className="min-h-16 w-full rounded-control border border-rule bg-paper p-3 font-body text-base text-cocoa"
             />
           </div>
 
           <div className="mb-5">
-            <label className="mb-1 block text-sm text-zinc-600">
+            <label className="mb-1 block text-sm text-muted">
               Your phone number (optional)
             </label>
             <input
@@ -373,12 +382,10 @@ export function PatientForm({
                 setPatientPhone(e.target.value);
                 setPhoneError(null);
               }}
-              className="min-h-11 w-full rounded-lg border border-zinc-300 p-3 text-base"
+              className="min-h-16 w-full rounded-control border border-rule bg-paper p-3 font-body text-base text-cocoa"
               placeholder="0803 123 4567"
             />
-            {phoneError && (
-              <p className="mt-1 text-sm text-red-600">{phoneError}</p>
-            )}
+            {phoneError && <p className="mt-1 text-sm text-berry">{phoneError}</p>}
           </div>
 
           <label className="mb-6 flex items-start gap-3">
@@ -386,24 +393,22 @@ export function PatientForm({
               type="checkbox"
               checked={consentToPublish}
               onChange={(e) => setConsentToPublish(e.target.checked)}
-              className="mt-1 h-5 w-5 shrink-0"
+              className="mt-1 h-5 w-5 shrink-0 accent-marigold"
             />
-            <span className="text-sm text-zinc-700">
-              You may publish my comment publicly, without my full name.
+            <span className="text-sm text-cocoa">
+              The clinic may publish my comment publicly, without my full name.
             </span>
           </label>
 
-          {submitError && (
-            <p className="mb-3 text-sm text-red-600">{submitError}</p>
-          )}
+          {submitError && <p className="mb-3 text-sm text-berry">{submitError}</p>}
 
           <button
             type="button"
             disabled={submitting}
             onClick={submit}
-            className="min-h-11 w-full rounded-lg bg-zinc-900 px-4 py-3 text-base font-medium text-white disabled:opacity-60"
+            className="min-h-16 w-full rounded-control bg-marigold px-4 py-3 font-body text-[17px] font-semibold text-cocoa disabled:opacity-60"
           >
-            {submitting ? "Submitting..." : "Submit"}
+            {submitting ? "Sending..." : "Send"}
           </button>
         </div>
       )}

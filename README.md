@@ -11,9 +11,11 @@ milestone by milestone per section 12 of the spec, stopping for review after eac
 - [x] **Milestone 4** — dashboard, response feed, alerting + email
 - [x] **Milestone 5** — publication queue, public clinic profile, admin moderation
 - [x] **Milestone 6** — polish (empty/error states, offline retry, poster template)
+- [x] **DESIGN.md v2.1 restyle** — the full Balm/Sabi Health design system applied across every
+  screen (see below)
 
-Version 1 is feature-complete against SPEC.md sections 4 and 12. See section 13 for the
-acceptance criteria this was built and tested against.
+Version 1 is feature-complete against SPEC.md sections 4 and 12, restyled to DESIGN.md v2.1. See
+SPEC section 13 for the acceptance criteria this was built and tested against.
 
 ## Stack
 
@@ -46,12 +48,13 @@ Project **Balm** (`cwnyayrsxujucrxqojuy`) lives in the Atofarati Supabase org, r
 
 ### Patient form (`/r/[token]`)
 
-- Its own root layout (`app/(patient)/layout.tsx`) skips the site's Geist webfonts entirely —
-  system font stack only — to protect the 150KB page-weight budget in SPEC section 6.
-- Measured **~139-142KB gzipped** (JS+CSS+HTML) in a production build against the 150KB ceiling.
+- Its own root layout (`app/(patient)/layout.tsx`) skips webfonts entirely — system font stack
+  only — to protect the 150KB page-weight budget in SPEC section 6. **This means it doesn't use
+  DESIGN.md's Public Sans/Gabarito faces** — see the "DESIGN.md restyle" section below for why;
+  it's a measured, deliberate trade-off, not an oversight.
+- Measured **~145KB gzipped** (JS+CSS+HTML) in a production build against the 150KB ceiling.
   That's close to the floor for React + Next.js App Router with zero extra libraries — there's
-  not much headroom left, so re-check this before adding any client-side dependency, especially
-  in Milestone 6 polish.
+  not much headroom left, so re-check this before adding any client-side dependency.
 - `POST /api/responses` de-dupes repeat submissions from the same hashed IP + token within 30
   seconds (SPEC section 11 abuse control), which also makes the client's automatic
   retry-once-on-failure safe against double inserts.
@@ -174,12 +177,86 @@ Project **Balm** (`cwnyayrsxujucrxqojuy`) lives in the Atofarati Supabase org, r
   (100), oldest-first result set so the page always renders, and a "showing the N oldest of
   total" message when there's more than what's shown, rather than silently truncating or hanging.
 
+## DESIGN.md restyle
+
+`DESIGN.md` (v2.1, companion to `SPEC.md`) arrived after v1 was already built and applies a full
+design system - palette, type, shape, voice, the seal - across every screen already shipped. It
+also resolves two of SPEC section 17's open questions directly: the product is named **Balm**
+(the clinic tool) and **Sabi Health** (the public review site "that Balm feeds"), and it confirms
+the `SabiHealth` Supabase project found during Milestone 1 setup *is* that public site - see
+"Existing prior work" below.
+
+- **Token layer**: `app/tokens.css` holds the shared Tailwind v4 `@theme` (colors, radii, shadow),
+  imported by both `app/(site)/globals.css` and `app/(patient)/patient.css` so the two root
+  layouts draw from one palette. Font tokens (`--font-display`, `--font-body`) are declared
+  per-layout instead, since the two sides load different weights - see the font-budget note below.
+- **The seal** (`app/(patient)/r/[token]/seal.tsx`): the one animation in the product, a CSS
+  keyframe scale/opacity/bounce sequence, played once on the thank-you screen. Reads
+  `prefers-reduced-motion` via `useSyncExternalStore` (same hydration-safe pattern as the offline
+  detection from Milestone 6) and shows the settled state immediately when it's set.
+- **Left-rail clinic shell** (`app/(site)/app/nav.tsx`): 220px sand rail on desktop, collapsing to
+  a horizontally-scrollable bottom bar on mobile via `flex-col-reverse` / `sm:flex-row` - no
+  separate mobile/desktop markup.
+- **Score color scale** (`lib/score-color.ts`): 70+ leaf, 40-69 cocoa, below 40 berry, per
+  DESIGN.md section 4 rule 5 - centralized once, used everywhere a score renders.
+- **Two-stage publish, one set of button labels**: DESIGN.md's `/app/publish` copy says "Publish"
+  and "Decline," but SPEC section 11 requires two *mandatory* moderation passes (clinic approval,
+  then Atofarati review) before anything actually goes public - a legal/defamation requirement,
+  not a style choice. Kept both: the owner's button now reads "Publish" (DESIGN's copy), but the
+  underlying mechanism still only moves `pending` → `approved`, with a visible note that Atofarati
+  reviews it next, and admin's `/admin` step is what actually creates the `public_reviews` row.
+- **Responses table uses `<details>`/`<summary>`** for DESIGN.md's "clicking a row expands it in
+  place, never a modal" - zero client JS needed for that interaction.
+- **Alert resolve button starts disabled** (`app/(site)/app/alerts/resolve-form.tsx`), enabling
+  once the note reaches 10 characters, per DESIGN.md's exact instruction - needed a small client
+  component since HTML's `required`/`minLength` blocks submission but doesn't visually disable
+  anything.
+- **Voice pass**: no "Submit" anywhere (patient form says "Send"; clinic actions say what they
+  do - Publish, Resolve, Decline), no exclamation marks, no apology language, no dark mode -
+  checked with a repo-wide grep, not just spot-checked.
+
+### The font budget didn't work out as written
+
+DESIGN.md section 5 asks for both Gabarito and Public Sans on patient screens, aggressively
+subsetted, and states the 150KB budget as a constraint it should fit inside. It didn't, even after
+maximal effort:
+
+1. Both faces, subsetted to only the characters the fixed patient copy uses (via Google Fonts'
+   `text=` parameter): **~175KB total** - about 25KB over.
+2. Gabarito dropped, Public Sans alone: **~161KB** - still over.
+3. No custom webfont, system stack only (the pre-DESIGN.md state): **~145KB** - back under, with
+   real margin.
+
+The two font files' fixed per-family table overhead (cmap, hinting, OS/2, etc.) turned out to cost
+more than the glyph subsetting could recover, even for a couple dozen fixed short strings. Given
+SPEC section 13's page-weight ceiling is an explicit, numbered acceptance criterion and DESIGN.md's
+own instruction conditions the font choice on fitting inside it rather than overriding it, patient
+screens kept the system font stack. Every other part of the system - palette, shape, spacing,
+voice, the seal - is fully applied there; clinic screens (no such budget) load both faces in full
+via `next/font/google`. This is a real, measured trade-off, not a shortcut - re-verify the numbers
+above before ever reconsidering it.
+
 ## Existing prior work
 
-An existing Supabase project (`SabiHealth`) was found in the Atofarati org during setup but its
-database was unreachable (credential error) at the time, so this build started from a clean
-Supabase project rather than reconciling with it. Revisit SPEC section 16 once SabiHealth access
-is restored.
+An existing Supabase project (`SabiHealth`) was found in the Atofarati org during Milestone 1
+setup but was unreachable (credential error) at the time. Access was restored later in the build,
+and DESIGN.md subsequently confirmed what it actually is: the public review site Balm feeds, not
+a different product to reconcile away.
+
+What's actually in it: a **different, consumer-facing schema** from Balm's (patients self-register
+via phone OTP as `reviewers` and write `reviews` of any `hospital` they choose, versus Balm's
+clinic-initiated, consent-gated model) - and real data: **1,374 hospitals** across all 36 states
+(482 in Lagos, 102 Rivers, 78 Ogun, 60 Oyo, weighted toward `private` facilities), plus 15 reviews,
+12 reviewers, 3 published reviews, and a `marketing_emails` capture table with a landing-page
+source column. The 1,374-hospital list is a real, usable pilot outreach candidate list for SPEC
+section 14, though it has no phone numbers populated in this sample - that would need sourcing
+separately.
+
+**Decided explicitly rather than assumed**: Balm's own `/c/[slug]` public profile stays as the
+live implementation for now. Syncing admin-published Balm reviews into SabiHealth's
+`hospitals`/`reviews` tables (matching or creating hospital records, handling the schema
+mismatch) is real, separate integration work with genuine design questions of its own - treated
+as explicit future work rather than guessed at.
 
 ## Development
 

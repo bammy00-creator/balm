@@ -516,6 +516,10 @@ export type Database = {
         Returns: string
       }
       dashboard_summary: { Args: { p_since: string }; Returns: Json }
+      period_avg_score: {
+        Args: { p_since: string; p_until: string }
+        Returns: number
+      }
       generate_short_token: { Args: Record<PropertyKey, never>; Returns: string }
       redact_expired_patient_contact: { Args: Record<PropertyKey, never>; Returns: undefined }
     }

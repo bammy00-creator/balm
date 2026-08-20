@@ -1,8 +1,33 @@
 @import "tailwindcss";
+@import "../tokens.css";
 
-/* Deliberately no next/font / Google Fonts here: SPEC 6 caps the whole patient
-   form page at 150KB on 3G, so this route uses the system font stack instead
-   of downloading anything. */
+/* --font-display and --font-body both resolve to the system stack here, not
+   a webfont - see the note in layout.tsx. Keeping both token names means
+   every component that reaches for font-display/font-body still works
+   unchanged; only the resolved typeface differs from the clinic side. */
+@theme inline {
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
+}
+
+/* DESIGN.md section 7: the seal, patient thank-you screen only. */
+@keyframes seal-in {
+  0% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  85% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
 }

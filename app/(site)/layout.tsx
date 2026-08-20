@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Gabarito, Public_Sans } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const gabarito = Gabarito({
+  weight: ["600", "700"],
   subsets: ["latin"],
+  variable: "--font-gabarito",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const publicSans = Public_Sans({
+  weight: ["400", "500", "600"],
   subsets: ["latin"],
+  variable: "--font-public-sans",
 });
 
 export const metadata: Metadata = {
@@ -21,9 +23,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${gabarito.variable} ${publicSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-milk text-cocoa">{children}</body>
     </html>
   );
 }

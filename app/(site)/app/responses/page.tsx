@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { scoreColorClass } from "@/lib/score-color";
 
 const PAGE_SIZE = 50;
 
@@ -15,6 +16,8 @@ const WAIT_LABELS: Record<string, string> = {
   "30_to_60": "30-60 min",
   over_60: "Over 1 hour",
 };
+
+const ROW_GRID = "grid grid-cols-[100px_1fr_1fr_60px_110px_80px_1fr] gap-3";
 
 function pageHref(params: Record<string, string | undefined>, page: number): string {
   const usp = new URLSearchParams();
@@ -76,33 +79,33 @@ export default async function ResponsesPage({
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-semibold text-zinc-900">Responses</h1>
+      <h1 className="mb-4 font-display text-[22px] font-semibold text-cocoa">Responses</h1>
 
       <form method="get" className="mb-6 flex flex-wrap items-end gap-2">
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">From</label>
+          <label className="mb-1 block text-xs text-muted">From</label>
           <input
             type="date"
             name="date_from"
             defaultValue={params.date_from ?? ""}
-            className="min-h-11 rounded-lg border border-zinc-300 p-2 text-sm"
+            className="min-h-11 rounded-control border border-rule bg-paper p-2 text-sm text-cocoa"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">To</label>
+          <label className="mb-1 block text-xs text-muted">To</label>
           <input
             type="date"
             name="date_to"
             defaultValue={params.date_to ?? ""}
-            className="min-h-11 rounded-lg border border-zinc-300 p-2 text-sm"
+            className="min-h-11 rounded-control border border-rule bg-paper p-2 text-sm text-cocoa"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Branch</label>
+          <label className="mb-1 block text-xs text-muted">Branch</label>
           <select
             name="branch"
             defaultValue={params.branch ?? ""}
-            className="min-h-11 rounded-lg border border-zinc-300 bg-white p-2 text-sm"
+            className="min-h-11 rounded-control border border-rule bg-paper p-2 text-sm text-cocoa"
           >
             <option value="">All</option>
             {(branches ?? []).map((b) => (
@@ -113,11 +116,11 @@ export default async function ResponsesPage({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Provider</label>
+          <label className="mb-1 block text-xs text-muted">Staff member</label>
           <select
             name="provider"
             defaultValue={params.provider ?? ""}
-            className="min-h-11 rounded-lg border border-zinc-300 bg-white p-2 text-sm"
+            className="min-h-11 rounded-control border border-rule bg-paper p-2 text-sm text-cocoa"
           >
             <option value="">All</option>
             {(providers ?? []).map((p) => (
@@ -128,11 +131,11 @@ export default async function ResponsesPage({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Score band</label>
+          <label className="mb-1 block text-xs text-muted">Score band</label>
           <select
             name="band"
             defaultValue={params.band ?? ""}
-            className="min-h-11 rounded-lg border border-zinc-300 bg-white p-2 text-sm"
+            className="min-h-11 rounded-control border border-rule bg-paper p-2 text-sm text-cocoa"
           >
             <option value="">All</option>
             {Object.entries(SCORE_BANDS).map(([key, b]) => (
@@ -144,62 +147,64 @@ export default async function ResponsesPage({
         </div>
         <button
           type="submit"
-          className="min-h-11 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+          className="min-h-11 rounded-control bg-marigold px-4 py-2 text-sm font-semibold text-cocoa"
         >
           Filter
         </button>
-        <a href="/app/responses" className="min-h-11 content-center px-2 text-sm text-zinc-500 underline">
+        <a href="/app/responses" className="min-h-11 content-center px-2 text-sm text-muted underline">
           Clear
         </a>
       </form>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
-          <thead>
-            <tr className="border-b border-zinc-200 text-left text-xs text-zinc-500">
-              <th className="py-2 pr-3">Date</th>
-              <th className="py-2 pr-3">Branch</th>
-              <th className="py-2 pr-3">Provider</th>
-              <th className="py-2 pr-3">Wait</th>
-              <th className="py-2 pr-3">Respect</th>
-              <th className="py-2 pr-3">Return</th>
-              <th className="py-2 pr-3">Score</th>
-              <th className="py-2 pr-3">Comment</th>
-              <th className="py-2">Publish</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(responses ?? []).map((r) => {
-              const branch = r.branches as unknown as { name: string } | null;
-              const provider = r.providers as unknown as { full_name: string } | null;
-              return (
-                <tr key={r.id} className="border-b border-zinc-100 align-top">
-                  <td className="py-2 pr-3 whitespace-nowrap text-zinc-500">
+      {(responses ?? []).length === 0 ? (
+        <p className="py-6 text-sm text-muted">No responses match these filters.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-block bg-milk">
+          <div className={`${ROW_GRID} min-w-[760px] border-b border-rule px-3 py-2 text-xs text-muted`}>
+            <span>Date</span>
+            <span>Branch</span>
+            <span>Staff member</span>
+            <span>Score</span>
+            <span>Wait</span>
+            <span>Return</span>
+            <span>Comment</span>
+          </div>
+          {(responses ?? []).map((r, i) => {
+            const branch = r.branches as unknown as { name: string } | null;
+            const provider = r.providers as unknown as { full_name: string } | null;
+            return (
+              <details key={r.id} className={`min-w-[760px] border-b border-rule last:border-0 ${i % 2 === 1 ? "bg-sand" : ""}`}>
+                <summary
+                  className={`${ROW_GRID} cursor-pointer list-none items-center px-3 py-2 text-sm text-cocoa marker:content-none`}
+                >
+                  <span className="whitespace-nowrap text-muted">
                     {new Date(r.created_at).toLocaleDateString("en-GB", {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
                     })}
-                  </td>
-                  <td className="py-2 pr-3">{branch?.name ?? "-"}</td>
-                  <td className="py-2 pr-3">{provider?.full_name ?? "-"}</td>
-                  <td className="py-2 pr-3 whitespace-nowrap">{WAIT_LABELS[r.wait_band]}</td>
-                  <td className="py-2 pr-3">{r.respect_score}/5</td>
-                  <td className="py-2 pr-3 capitalize">{r.return_intent}</td>
-                  <td className="py-2 pr-3 font-medium">{r.composite_score}</td>
-                  <td className="max-w-[220px] py-2 pr-3 truncate text-zinc-500">
-                    {r.comment ?? ""}
-                  </td>
-                  <td className="py-2 capitalize text-zinc-500">{r.publish_status}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {(responses ?? []).length === 0 && (
-          <p className="py-6 text-sm text-zinc-500">No responses match these filters.</p>
-        )}
-      </div>
+                  </span>
+                  <span className="truncate">{branch?.name ?? "-"}</span>
+                  <span className="truncate">{provider?.full_name ?? "-"}</span>
+                  <span className={`tabular-nums font-semibold ${scoreColorClass(r.composite_score)}`}>
+                    {r.composite_score}
+                  </span>
+                  <span className="whitespace-nowrap">{WAIT_LABELS[r.wait_band]}</span>
+                  <span className="capitalize">{r.return_intent}</span>
+                  <span className="truncate text-muted">{r.comment ?? ""}</span>
+                </summary>
+                <div className="px-3 pb-3 pl-[100px] text-sm text-cocoa">
+                  {r.comment ? <p className="mb-1">&ldquo;{r.comment}&rdquo;</p> : <p className="mb-1 text-muted">No comment.</p>}
+                  <p className="text-xs text-muted">
+                    Respect {r.respect_score}/5 &middot; Publish status:{" "}
+                    <span className="capitalize">{r.publish_status}</span>
+                  </p>
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      )}
 
       {totalPages > 1 && (
         <div className="mt-4 flex items-center gap-3 text-sm">
@@ -208,7 +213,7 @@ export default async function ResponsesPage({
               Previous
             </a>
           )}
-          <span className="text-zinc-500">
+          <span className="text-muted">
             Page {page} of {totalPages}
           </span>
           {page < totalPages && (

@@ -1,0 +1,32 @@
+/* Balm / Sabi Health shared design tokens - DESIGN.md section 12.
+   Colors, radii, and shadow only. Font stacks are declared per root layout
+   (app/(patient) and app/(site) load different weight subsets - see
+   DESIGN.md section 5's patient page-weight budget), so --font-display and
+   --font-body are set locally in each layout's own stylesheet, not here.
+   Imported by both app/(patient)/patient.css and app/(site)/globals.css so
+   the two root layouts share one token set. */
+
+@theme {
+  --color-cocoa: #33251e;
+  --color-milk: #fcf5ec;
+  --color-sand: #f3e9da;
+  --color-marigold: #f0a63c;
+  --color-leaf: #2f7a5b;
+  --color-berry: #b23a5f;
+  --color-rule: #e7daca;
+  --color-muted: #7a6a5d;
+  --color-paper: #ffffff;
+
+  --radius-block: 14px;
+  --radius-control: 10px;
+  --radius-chip: 999px;
+
+  --shadow-soft: 0 1px 2px rgba(51, 37, 30, 0.06);
+}
+
+/* DESIGN.md 13.3: full keyboard operation with a visible marigold focus
+   ring at 2px offset. */
+:focus-visible {
+  outline: 2px solid var(--color-marigold);
+  outline-offset: 2px;
+}

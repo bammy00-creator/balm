@@ -24,8 +24,8 @@ export default async function OnboardingPage() {
 
   return (
     <main className="mx-auto max-w-sm px-6 py-12">
-      <h1 className="mb-1 text-xl font-semibold text-zinc-900">Tell us about your clinic</h1>
-      <p className="mb-6 text-sm text-zinc-500">
+      <h1 className="mb-1 text-xl font-semibold text-cocoa">Tell us about your clinic</h1>
+      <p className="mb-6 text-sm text-muted">
         You can add more branches later from Team.
       </p>
       <OnboardingForm defaultEmail={user.email ?? ""} />

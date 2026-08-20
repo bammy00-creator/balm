@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { whatsappClickToChatUrl } from "@/lib/whatsapp";
+import { scoreColorClass } from "@/lib/score-color";
+import { ResolveForm } from "./resolve-form";
 
 const WAIT_LABELS: Record<string, string> = {
   under_15: "Under 15 min",
@@ -81,20 +83,20 @@ export default async function AlertsPage({
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-semibold text-zinc-900">Alerts</h1>
-      {actionError && <p className="mb-4 text-sm text-red-600">{actionError}</p>}
+      <h1 className="mb-4 font-display text-[22px] font-semibold text-cocoa">Alerts</h1>
+      {actionError && <p className="mb-4 text-sm text-berry">{actionError}</p>}
       {loadError && (
-        <p className="mb-4 text-sm text-red-600">
+        <p className="mb-4 text-sm text-berry">
           Couldn&apos;t load alerts right now - please refresh the page.
         </p>
       )}
 
       <section className="mb-8">
-        <h2 className="mb-3 text-sm font-medium text-zinc-700">
+        <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
           Open ({openCount})
         </h2>
         {openCount > OPEN_ALERTS_SHOWN && (
-          <p className="mb-3 text-sm text-amber-700">
+          <p className="mb-3 text-sm text-berry">
             Showing the {OPEN_ALERTS_SHOWN} oldest of {openCount} - resolve
             some to see the rest.
           </p>
@@ -104,19 +106,21 @@ export default async function AlertsPage({
             <AlertCard key={a.id} alert={a} />
           ))}
           {openCount === 0 && !loadError && (
-            <p className="text-sm text-zinc-500">No open alerts.</p>
+            <p className="text-sm text-muted">No patients are waiting on a call back.</p>
           )}
         </div>
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-medium text-zinc-700">Resolved</h2>
+        <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+          Resolved
+        </h2>
         <div className="flex flex-col gap-3">
           {(resolved ?? []).map((a) => (
             <AlertCard key={a.id} alert={a} />
           ))}
           {(resolved ?? []).length === 0 && (
-            <p className="text-sm text-zinc-500">No resolved alerts yet.</p>
+            <p className="text-sm text-muted">No resolved alerts yet.</p>
           )}
         </div>
       </section>
@@ -126,6 +130,7 @@ export default async function AlertsPage({
 
 function AlertCard({ alert }: { alert: AlertRow }) {
   const r = alert.responses;
+  const open = alert.status === "open";
   const time = new Date(alert.created_at).toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -136,18 +141,23 @@ function AlertCard({ alert }: { alert: AlertRow }) {
 
   return (
     <div
-      className={`rounded-lg border px-4 py-3 ${
-        alert.status === "open" ? "border-red-200 bg-red-50" : "border-zinc-200"
-      }`}
+      className={
+        open
+          ? "rounded-block border-l-[3px] border-berry bg-sand px-4 py-3 shadow-soft"
+          : "rounded-block bg-milk px-4 py-3 opacity-80"
+      }
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium text-zinc-900">
-          {alert.branches?.name ?? "Unknown branch"} &middot; Score {r?.composite_score ?? "-"}
+        <p className="text-sm font-medium text-cocoa">
+          {alert.branches?.name ?? "Unknown branch"} &middot;{" "}
+          <span className={`font-semibold ${scoreColorClass(r?.composite_score ?? 0)}`}>
+            Score {r?.composite_score ?? "-"}
+          </span>
         </p>
-        <p className="text-xs text-zinc-500">{time}</p>
+        <p className="text-xs text-muted">{time}</p>
       </div>
       {r && (
-        <ul className="mt-2 text-sm text-zinc-700">
+        <ul className="mt-2 text-sm text-cocoa">
           <li>Wait: {WAIT_LABELS[r.wait_band]}</li>
           <li>Respect: {r.respect_score}/5</li>
           <li>Would return: <span className="capitalize">{r.return_intent}</span></li>
@@ -162,32 +172,17 @@ function AlertCard({ alert }: { alert: AlertRow }) {
           )}
           target="_blank"
           rel="noreferrer"
-          className="mt-2 inline-block text-sm text-green-700 underline"
+          className="mt-2 inline-block text-sm text-leaf underline"
         >
-          Message {r.patient_name || "patient"} on WhatsApp
+          Call on WhatsApp
         </a>
       )}
 
-      {alert.status === "open" ? (
-        <form action={`/api/alerts/${alert.id}/resolve`} method="post" className="mt-3">
-          <textarea
-            name="note"
-            required
-            minLength={10}
-            rows={2}
-            placeholder="What did you do about this? (at least 10 characters)"
-            className="w-full rounded-lg border border-zinc-300 p-2 text-sm"
-          />
-          <button
-            type="submit"
-            className="mt-2 min-h-11 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-          >
-            Mark resolved
-          </button>
-        </form>
+      {open ? (
+        <ResolveForm alertId={alert.id} />
       ) : (
         alert.note && (
-          <p className="mt-3 rounded-lg bg-zinc-100 p-2 text-sm text-zinc-600">
+          <p className="mt-3 rounded-control bg-sand p-2 text-sm text-cocoa">
             <span className="font-medium">Note:</span> {alert.note}
           </p>
         )

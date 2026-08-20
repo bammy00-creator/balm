@@ -20,12 +20,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-zinc-200">
+    <div className="flex min-h-screen flex-col bg-milk">
+      <header className="border-b border-rule bg-sand">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-          <p className="text-sm font-semibold text-zinc-900">Atofarati admin</p>
+          <p className="font-display text-sm font-semibold text-cocoa">Atofarati admin</p>
           <form action={signOut}>
-            <button type="submit" className="min-h-11 rounded-lg px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-100">
+            <button type="submit" className="min-h-11 rounded-control px-3 py-2 text-sm text-muted hover:bg-rule/60">
               Sign out
             </button>
           </form>

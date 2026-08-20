@@ -19,7 +19,7 @@ export default async function SettingsPage() {
 
   if (profile.role !== "owner" && profile.role !== "admin") {
     return (
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-muted">
         Only the clinic owner can change settings.
       </p>
     );
@@ -32,17 +32,17 @@ export default async function SettingsPage() {
     .single();
 
   if (!clinic) {
-    return <p className="text-sm text-zinc-500">Clinic not found.</p>;
+    return <p className="text-sm text-muted">Clinic not found.</p>;
   }
 
   return (
     <div className="flex max-w-md flex-col gap-8">
       <section>
-        <h1 className="mb-4 text-lg font-semibold text-zinc-900">Clinic details</h1>
+        <h1 className="mb-4 text-lg font-semibold text-cocoa">Clinic details</h1>
         <ClinicDetailsForm clinic={clinic} />
       </section>
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-zinc-900">Logo</h2>
+        <h2 className="mb-4 text-lg font-semibold text-cocoa">Logo</h2>
         <LogoForm logoUrl={clinic.logo_url} />
       </section>
     </div>

@@ -20,9 +20,9 @@ export default async function FeedbackLinkPage({
 
   if (!link || !link.is_active || !clinic || clinic.status !== "active") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-sm flex-col items-center justify-center gap-2 px-6 text-center">
-        <p className="text-base font-medium text-zinc-900">This link isn&apos;t active.</p>
-        <p className="text-sm text-zinc-500">
+      <main className="mx-auto flex min-h-screen max-w-[520px] flex-col items-center justify-center gap-2 px-6 text-center">
+        <p className="font-display text-lg font-semibold text-cocoa">This link isn&apos;t active.</p>
+        <p className="text-sm text-muted">
           Please ask the clinic front desk for a current feedback link or QR code.
         </p>
       </main>
