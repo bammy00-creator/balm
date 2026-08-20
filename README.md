@@ -8,7 +8,7 @@ milestone by milestone per section 12 of the spec, stopping for review after eac
 - [x] **Milestone 1** — database schema, row level security, seed data
 - [x] **Milestone 2** — patient feedback form end to end
 - [x] **Milestone 3** — auth, clinic onboarding, branches/providers, link generation
-- [ ] Milestone 4 — dashboard, response feed, alerting + email
+- [x] **Milestone 4** — dashboard, response feed, alerting + email
 - [ ] Milestone 5 — publication queue, public clinic profile, admin moderation
 - [ ] Milestone 6 — polish (empty/error states, offline retry, poster template)
 
@@ -85,6 +85,34 @@ Project **Balm** (`cwnyayrsxujucrxqojuy`) lives in the Atofarati Supabase org, r
 - Clinic logo upload goes to Supabase Storage (`clinic-logos` bucket, public read, write
   restricted to the owning clinic's owner by a `{clinic_id}/...` path-prefix RLS policy - see
   `supabase/migrations/20260819161100_clinic_logo_storage.sql`).
+
+### Dashboard, responses, alerts
+
+- `dashboard_summary(p_since)` is a `security invoker` RPC (the default - stated explicitly) that
+  aggregates total responses, average composite score, open alert count, a daily trend, and
+  breakdowns by branch and provider in one round trip. Being invoker rather than definer is what
+  makes this simple: it runs as the calling user, so their existing RLS on
+  `responses`/`alerts`/`branches`/`providers` already scopes everything to their clinic (and
+  branch, if branch-limited staff) - the function itself never takes a clinic_id or branch_id.
+- Per-provider score breakdown is owner/admin-only in the UI (`app/(site)/app/page.tsx`) - a
+  deliberate decision on SPEC section 17's open question, not a default: branch staff see their
+  branch's overall trend and alerts, not named-individual scores.
+- The dashboard's trend line (`app/(site)/app/trend-chart.tsx`) is a hand-rolled server-rendered
+  SVG, not a charting library - no client JS at all for it.
+- Alert emails (SPEC section 9) go out via Resend from `POST /api/responses` right after the
+  insert, wrapped in try/catch so an email problem can never fail a patient's submission - see
+  `lib/email.ts`. **`RESEND_API_KEY` and `ALERT_FROM_EMAIL` are blank in `.env.local`**; without
+  them the send is skipped (logged only). Recipients come from a service-role-only RPC,
+  `alert_recipient_emails`, that reads `auth.users.email` directly (not exposed to
+  authenticated/anon at all).
+- `lib/whatsapp.ts` builds the click-to-chat link shared by the alert email and the `/app/alerts`
+  page itself.
+- **Found and fixed during testing**: the duplicate-submission guard from Milestone 2 originally
+  matched on hashed-IP + token + time window only, with no check that the answers matched. Two
+  *different* patients on the same clinic wifi within 30 seconds would have had the second
+  submission silently dropped (while still returning `ok: true`) - a real risk given how
+  Nigerian clinic waiting rooms actually share networks. It now also requires the wait band,
+  respect score, return intent, and comment to match before treating a submission as a repeat.
 
 ## Existing prior work
 

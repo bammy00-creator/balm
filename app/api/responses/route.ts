@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeNigerianPhone } from "@/lib/phone";
+import { sendAlertEmail } from "@/lib/email";
 import type { Enums } from "@/types/database";
 
 const WAIT_BANDS: Enums<"wait_band">[] = [
@@ -83,13 +84,14 @@ export async function POST(request: NextRequest) {
 
   const { data: link } = await supabase
     .from("feedback_links")
-    .select("id, clinic_id, branch_id, is_active, clinics(status)")
+    .select("id, clinic_id, branch_id, is_active, clinics(name, status), branches(name)")
     .eq("token", token)
     .maybeSingle();
 
-  const clinicStatus = (link?.clinics as unknown as { status: string } | null)?.status;
+  const clinic = link?.clinics as unknown as { name: string; status: string } | null;
+  const branch = link?.branches as unknown as { name: string } | null;
 
-  if (!link || !link.is_active || clinicStatus !== "active") {
+  if (!link || !link.is_active || !clinic || clinic.status !== "active") {
     return NextResponse.json({ error: "This link is not active." }, { status: 404 });
   }
 
@@ -111,17 +113,29 @@ export async function POST(request: NextRequest) {
 
   const sourceIpHash = hashIp(getClientIp(request));
 
-  const { data: recentDuplicate } = await supabase
+  // Matches on the actual answers too, not just IP+token+window - a shared
+  // clinic wifi can easily put two different patients behind the same
+  // hashed IP within 30 seconds, and treating that second, distinct
+  // submission as a duplicate would silently drop real feedback. This is
+  // specifically for the client's retry-on-failure path re-sending the exact
+  // same payload (SPEC 6), which abuse control (SPEC 11) also benefits from.
+  let duplicateQuery = supabase
     .from("responses")
     .select("id")
     .eq("link_id", link.id)
     .eq("source_ip_hash", sourceIpHash)
+    .eq("wait_band", wait_band as Enums<"wait_band">)
+    .eq("respect_score", respect_score as number)
+    .eq("return_intent", return_intent as Enums<"return_intent">)
     .gte(
       "created_at",
       new Date(Date.now() - DUPLICATE_WINDOW_SECONDS * 1000).toISOString()
     )
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  duplicateQuery = comment
+    ? duplicateQuery.eq("comment", comment as string)
+    : duplicateQuery.is("comment", null);
+  const { data: recentDuplicate } = await duplicateQuery.maybeSingle();
 
   const notify =
     return_intent === "no" ||
@@ -129,9 +143,6 @@ export async function POST(request: NextRequest) {
     (wait_band === "over_60" && (respect_score as number) <= 3);
 
   if (recentDuplicate) {
-    // Ignore repeat submissions from the same hashed source within the window
-    // (SPEC 11) rather than erroring - the client's retry-on-failure path may
-    // land here even though the first attempt actually succeeded.
     return NextResponse.json({ ok: true, notify });
   }
 
@@ -154,5 +165,48 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Could not save your response." }, { status: 500 });
   }
 
+  if (notify) {
+    // Never let email trouble affect the patient's response - this is fire
+    // logged, not awaited-and-surfaced.
+    try {
+      const { data: recipients } = await supabase.rpc("alert_recipient_emails", {
+        p_clinic_id: link.clinic_id,
+        p_branch_id: link.branch_id,
+      });
+      await sendAlertEmail({
+        to: recipients ?? [],
+        clinicName: clinic.name,
+        branchName: branch?.name ?? "",
+        compositeScore: compositeScoreFor(
+          respect_score as number,
+          return_intent as Enums<"return_intent">,
+          wait_band as Enums<"wait_band">
+        ),
+        waitBand: wait_band as Enums<"wait_band">,
+        respectScore: respect_score as number,
+        returnIntent: return_intent as Enums<"return_intent">,
+        comment: (comment as string | null) ?? null,
+        patientPhone: normalizedPhone,
+        createdAt: new Date(),
+        dashboardUrl: new URL("/app/alerts", request.url).toString(),
+      });
+    } catch (err) {
+      console.error("[alerts] Failed to send alert email:", err);
+    }
+  }
+
   return NextResponse.json({ ok: true, notify });
+}
+
+// Mirrors the DB's compute_composite_score() exactly, just for the email body
+// - the stored value on the row is still the source of truth.
+function compositeScoreFor(
+  respectScore: number,
+  returnIntent: Enums<"return_intent">,
+  waitBand: Enums<"wait_band">
+): number {
+  const respectSub = [0, 0, 25, 50, 75, 100][respectScore] ?? 0;
+  const returnSub = { yes: 100, maybe: 50, no: 0 }[returnIntent];
+  const waitSub = { under_15: 100, "15_to_30": 70, "30_to_60": 40, over_60: 0 }[waitBand];
+  return Math.round(respectSub * 0.5 + returnSub * 0.35 + waitSub * 0.15);
 }

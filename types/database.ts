@@ -474,6 +474,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      alert_recipient_emails: {
+        Args: { p_branch_id: string; p_clinic_id: string }
+        Returns: string[]
+      }
       comment_looks_clinical: { Args: { p_comment: string }; Returns: boolean }
       compute_composite_score: {
         Args: {
@@ -495,6 +499,7 @@ export type Database = {
         }
         Returns: string
       }
+      dashboard_summary: { Args: { p_since: string }; Returns: Json }
       generate_short_token: { Args: Record<PropertyKey, never>; Returns: string }
       redact_expired_patient_contact: { Args: Record<PropertyKey, never>; Returns: undefined }
     }

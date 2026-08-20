@@ -6,6 +6,8 @@ import { signOut } from "./actions";
 
 const LINKS = [
   { href: "/app", label: "Dashboard" },
+  { href: "/app/responses", label: "Responses" },
+  { href: "/app/alerts", label: "Alerts" },
   { href: "/app/team", label: "Team" },
   { href: "/app/links", label: "Links" },
   { href: "/app/settings", label: "Settings" },
