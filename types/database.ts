@@ -474,11 +474,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_publish_response: {
+        Args: { p_decision: string; p_response_id: string }
+        Returns: undefined
+      }
+      admin_set_clinic_status: {
+        Args: { p_clinic_id: string; p_status: Database["public"]["Enums"]["clinic_status"] }
+        Returns: undefined
+      }
       alert_recipient_emails: {
         Args: { p_branch_id: string; p_clinic_id: string }
         Returns: string[]
       }
+      clinic_set_publish_status: {
+        Args: { p_decision: string; p_response_id: string }
+        Returns: undefined
+      }
       comment_looks_clinical: { Args: { p_comment: string }; Returns: boolean }
+      comment_names_a_provider: {
+        Args: { p_clinic_id: string; p_comment: string }
+        Returns: boolean
+      }
       compute_composite_score: {
         Args: {
           p_respect_score: number

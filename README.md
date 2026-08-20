@@ -9,7 +9,7 @@ milestone by milestone per section 12 of the spec, stopping for review after eac
 - [x] **Milestone 2** — patient feedback form end to end
 - [x] **Milestone 3** — auth, clinic onboarding, branches/providers, link generation
 - [x] **Milestone 4** — dashboard, response feed, alerting + email
-- [ ] Milestone 5 — publication queue, public clinic profile, admin moderation
+- [x] **Milestone 5** — publication queue, public clinic profile, admin moderation
 - [ ] Milestone 6 — polish (empty/error states, offline retry, poster template)
 
 ## Stack
@@ -113,6 +113,34 @@ Project **Balm** (`cwnyayrsxujucrxqojuy`) lives in the Atofarati Supabase org, r
   submission silently dropped (while still returning `ok: true`) - a real risk given how
   Nigerian clinic waiting rooms actually share networks. It now also requires the wait band,
   respect score, return intent, and comment to match before treating a submission as a repeat.
+
+### Publication queue, public profile, and admin (`/app/publish`, `/c/[slug]`, `/admin`)
+
+- Two-stage publication, matching SPEC 11 ("every published review passes through both the
+  clinic's approval and Atofarati's moderation"): `clinic_set_publish_status` (owner, `pending` ->
+  `approved`/`rejected`) and `admin_publish_response` (admin, `approved` -> `published`/`rejected`,
+  which is also where the `public_reviews` row actually gets created). Both are `security definer`
+  because owners/admins have no direct UPDATE grant on `responses` at all - see
+  `supabase/migrations/20260819163000_publish_workflow.sql`.
+- **SPEC 11's "never publish a comment that names an individual member of staff"** is enforced by
+  `comment_names_a_provider`, a heuristic (like the clinical-detail flag from Milestone 1) that
+  checks the clinic's provider names against the comment. It blocks at *both* the owner-approve
+  step and the admin-publish step (the actual final gate) - verified this by submitting a review
+  naming a real provider and confirming the owner's Approve button gets rejected with a clear
+  message instead of silently succeeding.
+- `display_name` on `public_reviews` is computed server-side as the patient's first name only
+  (or "Anonymous"), per the spec's exact wording - never the full name, regardless of what was
+  collected for callback purposes.
+- `/c/[slug]` is public for every active clinic regardless of plan (a deliberate call on SPEC
+  section 17's open question, made explicitly since payments aren't built and gating by "paid"
+  would have meant no real clinic could have a public profile in v1). Suspended clinics 404
+  instead of showing anything.
+- There is no self-serve path to becoming an admin, by design - `/signup` only ever creates
+  clinic owners. To promote a user: `insert into profiles (user_id, clinic_id, role, full_name)
+  values ('<auth-user-id>', null, 'admin', '<name>');` directly in the Supabase dashboard/CLI.
+- Admin visiting `/app` gets redirected to `/admin` - without that, an admin would land on a
+  dashboard showing an aggregate across *every* clinic (correct per their RLS access, just not a
+  useful landing page), found while testing this milestone.
 
 ## Existing prior work
 

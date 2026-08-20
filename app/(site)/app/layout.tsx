@@ -22,6 +22,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/onboarding");
   }
 
+  if (profile.role === "admin") {
+    redirect("/admin");
+  }
+
   const clinic = profile.clinics as unknown as { name: string; status: string } | null;
 
   if (clinic && clinic.status !== "active") {
