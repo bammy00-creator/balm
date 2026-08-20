@@ -17,19 +17,30 @@ export default async function AdminPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
+  const QUEUE_SHOWN = 100;
 
-  const [{ data: clinics }, { data: queue }] = await Promise.all([
+  // Same fix as /app/alerts and /app/publish: capped and oldest-first, with
+  // an exact count fetched separately, rather than one unbounded query that
+  // can time out under load.
+  const [{ data: clinics }, queueCountRes, { data: queue }] = await Promise.all([
     supabase
       .from("clinics")
       .select("id, name, slug, plan, status, created_at")
       .order("created_at", { ascending: false }),
     supabase
       .from("responses")
+      .select("id", { count: "exact", head: true })
+      .eq("publish_status", "approved"),
+    supabase
+      .from("responses")
       .select("id, created_at, comment, composite_score, clinics(name), branches(name)")
       .eq("publish_status", "approved")
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: true })
+      .limit(QUEUE_SHOWN)
       .returns<ModerationRow[]>(),
   ]);
+
+  const queueCount = queueCountRes.count ?? 0;
 
   return (
     <div className="flex flex-col gap-8">
@@ -85,6 +96,11 @@ export default async function AdminPage({
           Approved by the clinic owner, awaiting the final Atofarati review before
           going public on their profile page.
         </p>
+        {queueCount > QUEUE_SHOWN && (
+          <p className="mb-3 text-sm text-amber-700">
+            Showing the {QUEUE_SHOWN} oldest of {queueCount}.
+          </p>
+        )}
         <div className="flex flex-col gap-3">
           {(queue ?? []).map((r) => (
             <div key={r.id} className="rounded-lg border border-zinc-200 px-4 py-3">
@@ -122,7 +138,7 @@ export default async function AdminPage({
               </div>
             </div>
           ))}
-          {(queue ?? []).length === 0 && (
+          {queueCount === 0 && (
             <p className="text-sm text-zinc-500">Nothing waiting for review.</p>
           )}
         </div>

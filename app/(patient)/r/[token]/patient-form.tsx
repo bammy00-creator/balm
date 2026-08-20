@@ -1,8 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { normalizeNigerianPhone } from "@/lib/phone";
+
+function subscribeToOnlineStatus(callback: () => void) {
+  window.addEventListener("online", callback);
+  window.addEventListener("offline", callback);
+  return () => {
+    window.removeEventListener("online", callback);
+    window.removeEventListener("offline", callback);
+  };
+}
+const getOnlineSnapshot = () => navigator.onLine;
+const getOnlineServerSnapshot = () => true; // assume online during SSR/first paint
 
 type Provider = { id: string; full_name: string; role: string | null };
 
@@ -101,10 +112,34 @@ export function PatientForm({
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const isOnline = useSyncExternalStore(
+    subscribeToOnlineStatus,
+    getOnlineSnapshot,
+    getOnlineServerSnapshot
+  );
+  const autoRetryPending = useRef(false);
+
+  useEffect(() => {
+    if (isOnline && autoRetryPending.current) {
+      autoRetryPending.current = false;
+      submit();
+    }
+    // Only the online transition should trigger this - submit() always reads
+    // current state via its own closure at call time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline]);
 
   async function submit() {
     if (patientPhone.trim() && !normalizeNigerianPhone(patientPhone)) {
       setPhoneError("That doesn't look like a Nigerian phone number.");
+      return;
+    }
+
+    if (!navigator.onLine) {
+      autoRetryPending.current = true;
+      setSubmitError(
+        "You're offline. Your answers are saved here - we'll send them automatically as soon as your connection is back."
+      );
       return;
     }
 
@@ -145,8 +180,12 @@ export function PatientForm({
       const { notify } = (await res.json()) as { notify: boolean };
       router.push(`/r/${token}/done${notify ? "?notice=1" : ""}`);
     } catch {
+      // Covers the connection dropping mid-request too, not just being
+      // offline at the start - either way, retry automatically once we're
+      // back online rather than making them notice and tap Submit again.
+      autoRetryPending.current = true;
       setSubmitError(
-        "That didn't go through. Check your connection and try again - your answers are still here."
+        "That didn't go through. Check your connection - your answers are still here, and we'll retry automatically once you're back online."
       );
       setSubmitting(false);
     }
@@ -154,6 +193,12 @@ export function PatientForm({
 
   return (
     <main className="mx-auto min-h-screen max-w-sm px-5 py-8">
+      {!isOnline && (
+        <div className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          You&apos;re offline. Your answers are safe here and will send once
+          you&apos;re back online.
+        </div>
+      )}
       {step === 0 && (
         <div className="flex min-h-[80vh] flex-col justify-center gap-6">
           <div>

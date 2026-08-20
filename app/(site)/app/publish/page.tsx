@@ -47,13 +47,23 @@ export default async function PublishPage({
 
   const selectClause =
     "id, created_at, comment, comment_flagged, composite_score, wait_band, respect_score, return_intent, publish_status, branches(name)";
+  const PENDING_SHOWN = 100;
 
-  const [{ data: pending }, { data: decided }] = await Promise.all([
+  // Oldest-first and capped, same fix as /app/alerts: an unbounded query
+  // here timed out during a 5000-response load test rather than erroring
+  // cleanly, so this queue - which should stay small in practice - still
+  // needs a hard limit for the pathological case.
+  const [pendingCountRes, { data: pending }, { data: decided }] = await Promise.all([
+    supabase
+      .from("responses")
+      .select("id", { count: "exact", head: true })
+      .eq("publish_status", "pending"),
     supabase
       .from("responses")
       .select(selectClause)
       .eq("publish_status", "pending")
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: true })
+      .limit(PENDING_SHOWN)
       .returns<Row[]>(),
     supabase
       .from("responses")
@@ -63,6 +73,8 @@ export default async function PublishPage({
       .limit(30)
       .returns<Row[]>(),
   ]);
+
+  const pendingCount = pendingCountRes.count ?? 0;
 
   return (
     <div>
@@ -75,13 +87,18 @@ export default async function PublishPage({
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-medium text-zinc-700">
-          Awaiting your decision ({(pending ?? []).length})
+          Awaiting your decision ({pendingCount})
         </h2>
+        {pendingCount > PENDING_SHOWN && (
+          <p className="mb-3 text-sm text-amber-700">
+            Showing the {PENDING_SHOWN} oldest of {pendingCount}.
+          </p>
+        )}
         <div className="flex flex-col gap-3">
           {(pending ?? []).map((r) => (
             <ReviewCard key={r.id} row={r} actionable />
           ))}
-          {(pending ?? []).length === 0 && (
+          {pendingCount === 0 && (
             <p className="text-sm text-zinc-500">Nothing waiting right now.</p>
           )}
         </div>

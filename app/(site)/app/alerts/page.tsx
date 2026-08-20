@@ -27,12 +27,14 @@ type AlertRow = {
   } | null;
 };
 
+const OPEN_ALERTS_SHOWN = 100;
+
 export default async function AlertsPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error: actionError } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -49,36 +51,59 @@ export default async function AlertsPage({
   const selectClause =
     "id, status, created_at, resolved_at, note, branches(name), responses(wait_band, respect_score, return_intent, comment, composite_score, patient_name, patient_phone)";
 
-  const [{ data: open }, { data: resolved }] = await Promise.all([
-    supabase
-      .from("alerts")
-      .select(selectClause)
-      .eq("status", "open")
-      .order("created_at", { ascending: false })
-      .returns<AlertRow[]>(),
-    supabase
-      .from("alerts")
-      .select(selectClause)
-      .neq("status", "open")
-      .order("created_at", { ascending: false })
-      .limit(50)
-      .returns<AlertRow[]>(),
-  ]);
+  // Oldest-first and capped: an open queue is meant to be worked down same
+  // day (SPEC section 9), so if it's ever this large something's wrong
+  // operationally - but the page still has to render safely rather than
+  // hang. Found by load-testing at 5000 responses: an unbounded query here
+  // took 45s and the connection reset, which the page then silently showed
+  // as "0 open alerts" instead of surfacing the failure.
+  const [openCountRes, { data: open, error: openError }, { data: resolved, error: resolvedError }] =
+    await Promise.all([
+      supabase.from("alerts").select("id", { count: "exact", head: true }).eq("status", "open"),
+      supabase
+        .from("alerts")
+        .select(selectClause)
+        .eq("status", "open")
+        .order("created_at", { ascending: true })
+        .limit(OPEN_ALERTS_SHOWN)
+        .returns<AlertRow[]>(),
+      supabase
+        .from("alerts")
+        .select(selectClause)
+        .neq("status", "open")
+        .order("created_at", { ascending: false })
+        .limit(50)
+        .returns<AlertRow[]>(),
+    ]);
+
+  const openCount = openCountRes.count ?? 0;
+  const loadError = openError ?? resolvedError;
 
   return (
     <div>
       <h1 className="mb-4 text-lg font-semibold text-zinc-900">Alerts</h1>
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {actionError && <p className="mb-4 text-sm text-red-600">{actionError}</p>}
+      {loadError && (
+        <p className="mb-4 text-sm text-red-600">
+          Couldn&apos;t load alerts right now - please refresh the page.
+        </p>
+      )}
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-medium text-zinc-700">
-          Open ({(open ?? []).length})
+          Open ({openCount})
         </h2>
+        {openCount > OPEN_ALERTS_SHOWN && (
+          <p className="mb-3 text-sm text-amber-700">
+            Showing the {OPEN_ALERTS_SHOWN} oldest of {openCount} - resolve
+            some to see the rest.
+          </p>
+        )}
         <div className="flex flex-col gap-3">
           {(open ?? []).map((a) => (
             <AlertCard key={a.id} alert={a} />
           ))}
-          {(open ?? []).length === 0 && (
+          {openCount === 0 && !loadError && (
             <p className="text-sm text-zinc-500">No open alerts.</p>
           )}
         </div>

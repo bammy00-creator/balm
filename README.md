@@ -10,7 +10,10 @@ milestone by milestone per section 12 of the spec, stopping for review after eac
 - [x] **Milestone 3** — auth, clinic onboarding, branches/providers, link generation
 - [x] **Milestone 4** — dashboard, response feed, alerting + email
 - [x] **Milestone 5** — publication queue, public clinic profile, admin moderation
-- [ ] Milestone 6 — polish (empty/error states, offline retry, poster template)
+- [x] **Milestone 6** — polish (empty/error states, offline retry, poster template)
+
+Version 1 is feature-complete against SPEC.md sections 4 and 12. See section 13 for the
+acceptance criteria this was built and tested against.
 
 ## Stack
 
@@ -141,6 +144,35 @@ Project **Balm** (`cwnyayrsxujucrxqojuy`) lives in the Atofarati Supabase org, r
 - Admin visiting `/app` gets redirected to `/admin` - without that, an admin would land on a
   dashboard showing an aggregate across *every* clinic (correct per their RLS access, just not a
   useful landing page), found while testing this milestone.
+
+### Polish (Milestone 6)
+
+- **Offline handling on the patient form**: `app/(patient)/r/[token]/patient-form.tsx` reads
+  `navigator.onLine` via `useSyncExternalStore` (the hydration-safe way to read browser state
+  that can differ between server and client - a plain `useState`+effect here either risks a
+  hydration mismatch or trips the `set-state-in-effect` lint rule). Submitting while offline is
+  blocked immediately, with a banner and a message, and queues an automatic retry that fires
+  itself the moment the `online` event fires - verified by toggling `navigator.onLine` and
+  dispatching the events directly in a live session; a blocked submission went through on its own
+  the instant "online" fired, no user action needed.
+- **Error boundaries**: `app/global-error.tsx` (root layout failures - inlines its own styles
+  since it can't rely on any other layout loading), `app/not-found.tsx` (a URL matching no route
+  at all - also self-contained, since Next.js can't know which of the two root layouts, `(site)`
+  or `(patient)`, it would belong to), plus `(site)/error.tsx`, `(site)/not-found.tsx`, and a
+  deliberately tiny `(patient)/error.tsx` / `(patient)/not-found.tsx` pair to protect the patient
+  page-weight budget.
+- **Waiting-room poster**: `GET /api/links/[id]/poster.pdf`, a fuller branded one-pager (clinic
+  logo if set, headline, large QR, instructions) - distinct from the plain QR PDF built in
+  Milestone 3, which stays a bare code for printing anywhere. Same session-scoped-client pattern
+  as the other QR downloads, so RLS decides access.
+- **Found via a deliberate 5000-response load test** (SPEC 13.7 explicitly requires the dashboard
+  to render correctly at that volume): `/app/alerts`'s unbounded "open" query took 45 seconds and
+  then the connection reset - and because the code only checked `data`, not `error`, the page
+  silently rendered "0 open alerts" instead of surfacing the failure. `/app/publish`'s pending
+  queue and `/admin`'s moderation queue had the identical unbounded-query shape, so all three got
+  the same fix: a separate `count: 'exact', head: true` query for the true total, a capped
+  (100), oldest-first result set so the page always renders, and a "showing the N oldest of
+  total" message when there's more than what's shown, rather than silently truncating or hanging.
 
 ## Existing prior work
 
